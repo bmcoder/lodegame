@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Backpack, Bell, BellOff, Coins, DoorOpen, Dumbbell, Gauge, Gem, Hammer, MapIcon, MessageCircle, Package, Pause, Reply, RotateCcw, Shield, Shirt, ShoppingBag, Swords, Trash2, UserRound, X, Zap } from "lucide-react";
+import { Backpack, Bell, BellOff, Coins, DoorOpen, Dumbbell, Gauge, Gem, Hammer, Home, MapIcon, MessageCircle, Package, Pause, Reply, RotateCcw, Shield, Shirt, ShoppingBag, Swords, Trash2, UserRound, X, Zap } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
 import { getLevel, getNextLevelId } from "@/app/lib/data/levels";
 import { upgradePrices, useGameState } from "@/app/hooks/useGameState";
@@ -245,6 +245,10 @@ export function GameCanvas({ levelId }: GameCanvasProps) {
               <RotateCcw size={16} />
               Заново
             </button>
+            <Link className="inline-flex h-10 items-center gap-2 rounded-md border border-white/15 px-3 text-sm hover:bg-white/10" href="/menu">
+              <Home size={16} />
+              Главная
+            </Link>
           </div>
         </div>
 
