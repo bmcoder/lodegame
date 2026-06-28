@@ -1,0 +1,125 @@
+[
+  {
+    "id": 1,
+    "name": "Классическая шахта",
+    "timeLimit": 180,
+    "enemySpeed": 72,
+    "aggression": 0.3,
+    "player": { "x": 3, "y": 9 },
+    "exit": { "x": 22, "y": 1 },
+    "map": [
+      "############################",
+      "#....L........L........X...#",
+      "#.PPPLPPPPPPP.LPPPPPPPPLPP.#",
+      "#....L........L........L...#",
+      "#.PPPLPPPPPPPPLPPPPPP..L...#",
+      "#....L........L........L...#",
+      "#....LPPPPPPPPLPPPPPPPPLPP.#",
+      "#....L........L........L...#",
+      "#.PPPLPPPPPPPPLPPP..PPPLPP.#",
+      "#....L........L........L...#",
+      "#.PPPLPPPPPPPPLPPPPPPPPLPP.#",
+      "############################"
+    ],
+    "enemies": [
+      { "id": "guard-1", "x": 14, "y": 9, "type": "hauntedTrain" },
+      { "id": "guard-2", "x": 22, "y": 5, "type": "walker" }
+    ],
+    "items": [
+      { "type": "coin", "x": 3, "y": 1 },
+      { "type": "coin", "x": 10, "y": 1 },
+      { "type": "coin", "x": 18, "y": 1 },
+      { "type": "coin", "x": 23, "y": 3 },
+      { "type": "coin", "x": 8, "y": 5 },
+      { "type": "coin", "x": 20, "y": 5 },
+      { "type": "coin", "x": 12, "y": 7 },
+      { "type": "coin", "x": 21, "y": 7 },
+      { "type": "energy", "x": 24, "y": 9 },
+      { "type": "heart", "x": 6, "y": 9 }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Золотые галереи",
+    "timeLimit": 165,
+    "enemySpeed": 88,
+    "aggression": 0.45,
+    "player": { "x": 3, "y": 9 },
+    "exit": { "x": 22, "y": 1 },
+    "map": [
+      "############################",
+      "#....L........L........X...#",
+      "#.PPPLPPPPPPP.LPPPPPPPPLPP.#",
+      "#....L........L........L...#",
+      "#.PPPLPPPPPPPPLPPPPPP..L...#",
+      "#....L........L........L...#",
+      "#....LPPPPPPPPLPPPPPPPPLPP.#",
+      "#....L........L........L...#",
+      "#.PPPLPPPPPPPPLPPP..PPPLPP.#",
+      "#....L........L........L...#",
+      "#.PPPLPPPPPPPPLPPPPPPPPLPP.#",
+      "############################"
+    ],
+    "enemies": [
+      { "id": "guard-1", "x": 13, "y": 9, "type": "hauntedTrain" },
+      { "id": "guard-2", "x": 20, "y": 7, "type": "hunter" },
+      { "id": "guard-3", "x": 7, "y": 3, "type": "siren" }
+    ],
+    "items": [
+      { "type": "coin", "x": 4, "y": 1 },
+      { "type": "coin", "x": 12, "y": 1 },
+      { "type": "coin", "x": 20, "y": 1 },
+      { "type": "coin", "x": 7, "y": 3 },
+      { "type": "coin", "x": 17, "y": 3 },
+      { "type": "coin", "x": 24, "y": 5 },
+      { "type": "coin", "x": 6, "y": 7 },
+      { "type": "coin", "x": 16, "y": 7 },
+      { "type": "coin", "x": 24, "y": 9 },
+      { "type": "energy", "x": 10, "y": 9 },
+      { "type": "heart", "x": 22, "y": 1 }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Сокровищница роботов",
+    "timeLimit": 150,
+    "enemySpeed": 104,
+    "aggression": 0.62,
+    "player": { "x": 3, "y": 9 },
+    "exit": { "x": 22, "y": 1 },
+    "map": [
+      "############################",
+      "#....L........L........X...#",
+      "#.PPPLPPPPPPP.LPPPPPPPPLPP.#",
+      "#....L........L........L...#",
+      "#.PPPLPPPPPPPPLPPPPPP..L...#",
+      "#....L........L........L...#",
+      "#....LPPPPPPPPLPPPPPPPPLPP.#",
+      "#....L........L........L...#",
+      "#.PPPLPPPPPPPPLPPP..PPPLPP.#",
+      "#....L........L........L...#",
+      "#.PPPLPPPPPPPPLPPPPPPPPLPP.#",
+      "############################"
+    ],
+    "enemies": [
+      { "id": "guard-1", "x": 11, "y": 9, "type": "hauntedTrain" },
+      { "id": "guard-2", "x": 19, "y": 7, "type": "siren" },
+      { "id": "guard-3", "x": 23, "y": 3, "type": "shooter" },
+      { "id": "guard-4", "x": 8, "y": 5, "type": "hauntedTrain" }
+    ],
+    "items": [
+      { "type": "coin", "x": 3, "y": 1 },
+      { "type": "coin", "x": 10, "y": 1 },
+      { "type": "coin", "x": 18, "y": 1 },
+      { "type": "coin", "x": 21, "y": 1 },
+      { "type": "coin", "x": 4, "y": 3 },
+      { "type": "coin", "x": 13, "y": 3 },
+      { "type": "coin", "x": 23, "y": 3 },
+      { "type": "coin", "x": 8, "y": 5 },
+      { "type": "coin", "x": 20, "y": 5 },
+      { "type": "coin", "x": 12, "y": 7 },
+      { "type": "energy", "x": 16, "y": 9 },
+      { "type": "heart", "x": 24, "y": 1 }
+    ]
+  }
+]
