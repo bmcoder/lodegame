@@ -173,20 +173,20 @@ function loadAuth(): AuthState {
 }
 
 function ensureTestAccount(auth: AuthState): AuthState {
-  const email = "basmoney@yandex.ru";
+  const email = "admin@admin.ru";
   if (!auth.accounts[email]) {
-    const profile = { ...defaultProfile, email, nickname: "basmoney" };
+    const profile = { ...defaultProfile, email, nickname: "admin" };
     auth.accounts[email] = {
       customization: defaultCustomization,
       unlockedLevel: 1,
       highScores: {},
       profile,
       email,
-      nickname: "basmoney",
-      password: "133213",
+      nickname: "admin",
+      password: "12345678",
     };
   } else {
-    auth.accounts[email].password = "133213";
+    auth.accounts[email].password = "12345678";
   }
   return auth;
 }
