@@ -560,6 +560,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createSolidTile(key: string, px: number, py: number, textureKey: string, diggable: boolean) {
+    if (!this.canUsePhysicsGroups()) return;
     const tile = this.solids.create(px, py, textureKey).setDepth(1);
     tile.setData("tileKey", key);
     tile.setData("textureKey", textureKey);
@@ -568,6 +569,10 @@ export class MainScene extends Phaser.Scene {
   }
 
   private createEnemyDoorTile(key: string, px: number, py: number) {
+    if (!this.canUsePhysicsGroups()) {
+      if (this.canUseDisplayList()) this.tileSprites.set(key, this.add.image(px, py, "door").setDepth(3));
+      return;
+    }
     const door = this.enemyDoors.create(px, py, "door").setDepth(3);
     door.setSize(TILE - 6, TILE);
     door.refreshBody();
@@ -753,8 +758,11 @@ export class MainScene extends Phaser.Scene {
   }
 
   private applyWorldMap(map: string[]) {
+    if (!this.canUsePhysicsGroups()) return;
     if (!map.length) return;
-    [...this.tileSprites.values()].forEach((tile) => tile.destroy());
+    [...this.tileSprites.values()].forEach((tile) => {
+      if (tile?.active) tile.destroy();
+    });
     this.tileSprites.clear();
     this.solids.clear(true, true);
     this.ladders.clear(true, true);
@@ -773,6 +781,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private applyTile(x: number, y: number, tile: "." | "P" | "L" | "D") {
+    if (!this.canUsePhysicsGroups()) return;
     if (!this.level.map[y]) return;
     const key = `${x}:${y}`;
     this.tileSprites.get(key)?.destroy();
@@ -840,6 +849,16 @@ export class MainScene extends Phaser.Scene {
 
   private canUseDisplayList() {
     return Boolean(!this.destroyed && this.add && this.sys?.displayList && this.scene.isActive());
+  }
+
+  private canUsePhysicsGroups() {
+    return Boolean(
+      !this.destroyed &&
+        this.scene.isActive() &&
+        this.solids?.scene?.sys &&
+        this.ladders?.scene?.sys &&
+        this.enemyDoors?.scene?.sys,
+    );
   }
 
   private collectPrize(prize: WorldPrize) {
@@ -1676,7 +1695,7 @@ export class MainScene extends Phaser.Scene {
     const melody = [392, 0, 392, 523, 494, 0, 392, 330, 349, 392, 0, 330, 294, 0, 330, 349];
     const bass = [98, 98, 0, 98, 131, 0, 131, 0];
     this.musicInterval = window.setInterval(() => {
-      if (!this.audioContext || this.ended) return;
+      if (!this.audioContext || this.audioContext.state === "closed" || this.ended) return;
       const now = this.audioContext.currentTime;
       const note = melody[this.musicStep % melody.length];
       const bassNote = bass[this.musicStep % bass.length];
@@ -1689,13 +1708,14 @@ export class MainScene extends Phaser.Scene {
   private stopAudio = () => {
     if (this.musicInterval) window.clearInterval(this.musicInterval);
     this.musicInterval = undefined;
-    void this.audioContext?.close();
+    const context = this.audioContext;
     this.audioContext = undefined;
     this.audioUnlocked = false;
+    if (context && context.state !== "closed") void context.close().catch(() => undefined);
   };
 
   private playSfx(kind: "jump" | "shoot" | "dig" | "super" | "enemy" | "hurt" | "gold" | "open" | "win" | "lose" | "siren" | "poop") {
-    if (!this.audioContext) return;
+    if (!this.audioContext || this.audioContext.state === "closed") return;
     const now = this.audioContext.currentTime;
     if (kind === "jump") this.playArp([220, 330], now, 0.045);
     if (kind === "shoot") this.playSlide(880, 220, now, 0.09, "square", 0.045);
@@ -1716,7 +1736,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private playTone(frequency: number, start: number, duration: number, type: OscillatorType, gainValue: number) {
-    if (!this.audioContext) return;
+    if (!this.audioContext || this.audioContext.state === "closed") return;
     const oscillator = this.audioContext.createOscillator();
     const gain = this.audioContext.createGain();
     oscillator.type = type;
@@ -1731,7 +1751,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private playSlide(from: number, to: number, start: number, duration: number, type: OscillatorType, gainValue: number) {
-    if (!this.audioContext) return;
+    if (!this.audioContext || this.audioContext.state === "closed") return;
     const oscillator = this.audioContext.createOscillator();
     const gain = this.audioContext.createGain();
     oscillator.type = type;
@@ -1746,7 +1766,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private playNoise(start: number, duration: number, gainValue: number) {
-    if (!this.audioContext) return;
+    if (!this.audioContext || this.audioContext.state === "closed") return;
     const sampleRate = this.audioContext.sampleRate;
     const buffer = this.audioContext.createBuffer(1, sampleRate * duration, sampleRate);
     const data = buffer.getChannelData(0);
