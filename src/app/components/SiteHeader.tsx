@@ -67,6 +67,13 @@ export function SiteHeader() {
               description="Железо собирается на карте, нужно для лестниц и может продаваться или покупаться в магазине."
             />
             <HeaderStat
+              icon={<Zap size={15} />}
+              value={profile.wood}
+              tone="text-amber-200"
+              title="Дерево"
+              description="Дерево собирается на карте и может продаваться или покупаться в магазине."
+            />
+            <HeaderStat
               icon={<Heart size={15} />}
               value={lives}
               tone="text-rose-200"

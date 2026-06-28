@@ -73,6 +73,7 @@ export const defaultProfile: PlayerProfile = {
   materials: 8,
   stone: 8,
   iron: 0,
+  wood: 0,
   upgrades: {
     runSpeed: 0,
     fireRate: 0,
@@ -95,6 +96,7 @@ const initialRuntime: RuntimeStats = {
   materials: 0,
   stone: 0,
   iron: 0,
+  wood: 0,
   backpackLoad: 0,
   backpackCapacity: 10,
   keys: 0,
@@ -105,6 +107,23 @@ const initialRuntime: RuntimeStats = {
   levelId: 1,
   elapsedMs: 0,
 };
+
+function migrateProfile(profile: Partial<PlayerProfile> | undefined): PlayerProfile {
+  return {
+    ...defaultProfile,
+    ...profile,
+    nickname: profile?.nickname ?? defaultProfile.nickname,
+    enemiesKilled: profile?.enemiesKilled ?? 0,
+    goldMined: profile?.goldMined ?? 0,
+    playTimeMs: profile?.playTimeMs ?? 0,
+    stone: profile?.stone ?? profile?.materials ?? defaultProfile.stone,
+    iron: profile?.iron ?? defaultProfile.iron,
+    wood: profile?.wood ?? defaultProfile.wood,
+    upgrades: { ...defaultProfile.upgrades, ...profile?.upgrades },
+    equipment: profile?.equipment ?? {},
+    inventory: profile?.inventory ?? [],
+  };
+}
 
 function loadPersisted(): PersistedState {
   if (typeof window === "undefined") {
@@ -122,19 +141,7 @@ function loadPersisted(): PersistedState {
       customization: { ...defaultCustomization, ...parsed.customization },
       unlockedLevel: parsed.unlockedLevel ?? 1,
       highScores: parsed.highScores ?? {},
-      profile: {
-        ...defaultProfile,
-        ...parsed.profile,
-        nickname: parsed.profile?.nickname ?? defaultProfile.nickname,
-        enemiesKilled: parsed.profile?.enemiesKilled ?? 0,
-        goldMined: parsed.profile?.goldMined ?? 0,
-        playTimeMs: parsed.profile?.playTimeMs ?? 0,
-        stone: parsed.profile?.stone ?? parsed.profile?.materials ?? defaultProfile.stone,
-        iron: parsed.profile?.iron ?? defaultProfile.iron,
-        upgrades: { ...defaultProfile.upgrades, ...parsed.profile?.upgrades },
-        equipment: parsed.profile?.equipment ?? {},
-        inventory: parsed.profile?.inventory ?? [],
-      },
+      profile: migrateProfile(parsed.profile),
     };
   } catch {
     return { customization: defaultCustomization, unlockedLevel: 1, highScores: {}, profile: defaultProfile };
@@ -217,7 +224,7 @@ export const useGameState = create<GameStore>((set, get) => ({
     const auth = loadAuth();
     if (auth.currentEmail && auth.accounts[auth.currentEmail]) {
       const account = auth.accounts[auth.currentEmail];
-      set({ ...account, authEmail: auth.currentEmail, hydrated: true });
+      set({ ...account, profile: migrateProfile(account.profile), authEmail: auth.currentEmail, hydrated: true });
       return;
     }
     const persisted = loadPersisted();
@@ -254,8 +261,9 @@ export const useGameState = create<GameStore>((set, get) => ({
     if (!account || account.password !== passwordInput.trim()) return false;
     auth.currentEmail = email;
     saveAuth(auth);
-    set({ ...account, authEmail: email });
-    persist(account);
+    const migratedAccount = { ...account, profile: migrateProfile(account.profile) };
+    set({ ...migratedAccount, authEmail: email });
+    persist(migratedAccount);
     return true;
   },
   logout: () => {

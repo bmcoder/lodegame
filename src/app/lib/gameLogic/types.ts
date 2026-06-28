@@ -1,6 +1,6 @@
 export type TileCode = "." | "#" | "S" | "P" | "L" | "D" | "X";
 
-export type ItemType = "coin" | "stone" | "iron" | "key" | "heart" | "energy" | "prize";
+export type ItemType = "coin" | "stone" | "iron" | "wood" | "key" | "heart" | "energy" | "prize";
 
 export type FaceType = "happy" | "serious" | "angry" | "surprised";
 export type HairLength = "short" | "medium" | "long";
@@ -53,6 +53,7 @@ export type RuntimeStats = {
   materials: number;
   stone: number;
   iron: number;
+  wood: number;
   backpackLoad: number;
   backpackCapacity: number;
   keys: number;
@@ -94,6 +95,7 @@ export type PlayerProfile = {
   materials: number;
   stone: number;
   iron: number;
+  wood: number;
   upgrades: Record<UpgradeKey, number>;
   equipment: Partial<Record<GearSlot, InventoryItem>>;
   inventory: InventoryItem[];
@@ -107,7 +109,7 @@ export type MarketListing = {
   createdAt: number;
 };
 
-export type MinimapEntityType = "player" | "remotePlayer" | "enemy" | "coin" | "stone" | "iron" | "key" | "heart" | "energy" | "prize" | "incubator" | "exit";
+export type MinimapEntityType = "player" | "remotePlayer" | "enemy" | "coin" | "stone" | "iron" | "wood" | "key" | "heart" | "energy" | "prize" | "incubator" | "exit";
 
 export type MinimapEntity = {
   id: string;

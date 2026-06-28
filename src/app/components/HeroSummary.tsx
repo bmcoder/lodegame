@@ -37,10 +37,11 @@ export function HeroSummary({ profile, customization }: { profile: PlayerProfile
     <section className="grid gap-4 rounded-lg border border-white/10 bg-white/5 p-4 lg:grid-cols-[auto_1fr]">
       <HeroAvatar profile={profile} customization={customization} />
       <div className="grid gap-4">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
           <StatIcon icon={<Coins size={17} />} label="Золото" value={profile.gold} tone="text-yellow-200" />
           <StatIcon icon={<Zap size={17} />} label="Камень" value={profile.stone} tone="text-cyan-200" />
           <StatIcon icon={<Gem size={17} />} label="Железо" value={profile.iron} tone="text-slate-200" />
+          <StatIcon icon={<Zap size={17} />} label="Дерево" value={profile.wood} tone="text-amber-200" />
           <StatIcon icon={<Package size={17} />} label="Вещи" value={inventoryCount} tone="text-fuchsia-200" />
           <StatIcon icon={<Swords size={17} />} label="Очки" value={profile.score} tone="text-orange-200" />
         </div>

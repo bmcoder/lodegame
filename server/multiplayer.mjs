@@ -166,7 +166,8 @@ function spawnResource() {
     if (!["#", "P", "S"].includes(tileAt(x, y + 1)) && tileAt(x, y + 1) !== "L") continue;
     if (world.gold.some((gold) => gold.x === x && gold.y === y)) continue;
     if (world.resources.some((resource) => resource.x === x && resource.y === y)) continue;
-    const kind = Math.random() > 0.74 ? "iron" : "stone";
+    const roll = Math.random();
+    const kind = roll > 0.82 ? "iron" : roll > 0.58 ? "wood" : "stone";
     const resource = { id: `resource-${world.nextResourceId++}`, kind, x, y };
     world.resources.push(resource);
     io.emit("world:resource:spawn", resource);

@@ -22,6 +22,7 @@ export function Hud({ stats, timeLimit, message }: HudProps) {
         <Metric icon={<Hammer size={15} />} label="Рюкзак" value={stats ? `${stats.backpackLoad}/${stats.backpackCapacity}` : "0/10"} />
         <Metric icon={<Hammer size={15} />} label="Камень" value={stats?.stone ?? 0} />
         <Metric icon={<Gem size={15} />} label="Железо" value={stats?.iron ?? 0} />
+        <Metric icon={<Hammer size={15} />} label="Дерево" value={stats?.wood ?? 0} />
         <Metric icon={<Zap size={15} />} label="Энергия" value={`${stats?.energy ?? 0}%`} />
         <Metric icon={<HeartPulse size={15} />} label="Здоровье" value={`${stats?.health ?? 100}%`} />
         <Metric icon={<Timer size={15} />} label="Время" value={remaining} />
@@ -73,6 +74,7 @@ function tooltipText(label: string) {
     Рюкзак: "Занятый вес и текущая вместимость рюкзака.",
     Камень: "Материал для строительства стен и лестниц. Собирается на карте или покупается в магазине.",
     Железо: "Редкий материал для лестниц. Собирается на карте или покупается в магазине.",
+    Дерево: "Строительный ресурс. Собирается на карте или покупается в магазине.",
     Энергия: "Запас энергии для специальных действий.",
     Здоровье: "Текущий процент здоровья героя.",
     Время: "Время текущей игровой сессии.",

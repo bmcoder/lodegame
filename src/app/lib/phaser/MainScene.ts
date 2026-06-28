@@ -60,7 +60,7 @@ type WorldGold = {
 
 type WorldResource = {
   id: string;
-  kind: "stone" | "iron";
+  kind: "stone" | "iron" | "wood";
   x: number;
   y: number;
 };
@@ -158,6 +158,7 @@ export class MainScene extends Phaser.Scene {
       materials: profile.materials,
       stone: profile.stone,
       iron: profile.iron,
+      wood: profile.wood,
       backpackLoad: this.backpackLoad(),
       backpackCapacity: this.backpackCapacity(),
       keys: 0,
@@ -260,6 +261,7 @@ export class MainScene extends Phaser.Scene {
     this.makeGoldPileTexture("coin");
     this.makeItemTexture("stoneResource", 0x94a3b8);
     this.makeItemTexture("ironResource", 0xd1d5db);
+    this.makeItemTexture("woodResource", 0xa16207);
     this.makeItemTexture("key", 0x38bdf8);
     this.makeItemTexture("heart", 0xfb7185);
     this.makeItemTexture("energy", 0xfef08a);
@@ -336,7 +338,7 @@ export class MainScene extends Phaser.Scene {
     graphics.destroy();
   }
 
-  private makeItemTexture(key: ItemType | "stoneResource" | "ironResource", color: number) {
+  private makeItemTexture(key: ItemType | "stoneResource" | "ironResource" | "woodResource", color: number) {
     const graphics = this.make.graphics({ x: 0, y: 0 }, false);
     graphics.fillStyle(color, 1);
     graphics.fillCircle(12, 12, 10);
@@ -812,7 +814,7 @@ export class MainScene extends Phaser.Scene {
   private createWorldResource(resource: WorldResource) {
     if (!this.canCreateWorldItem() || !Number.isFinite(resource.x) || !Number.isFinite(resource.y)) return;
     if (this.resourceSprites.has(resource.id)) return;
-    const texture = resource.kind === "iron" ? "ironResource" : "stoneResource";
+    const texture = resource.kind === "iron" ? "ironResource" : resource.kind === "wood" ? "woodResource" : "stoneResource";
     const sprite = this.items.create(resource.x * TILE + TILE / 2, resource.y * TILE + TILE / 2, texture) as Phaser.Physics.Arcade.Sprite;
     sprite.setDepth(6);
     sprite.setData("type", resource.kind);
@@ -1103,6 +1105,7 @@ export class MainScene extends Phaser.Scene {
     this.stats.materials = this.profile.materials;
     this.stats.stone = this.profile.stone;
     this.stats.iron = this.profile.iron;
+    this.stats.wood = this.profile.wood;
     this.stats.backpackLoad = this.backpackLoad();
     this.stats.backpackCapacity = this.backpackCapacity();
     this.callbacks.onProfileChange?.(this.profile);
@@ -1542,24 +1545,25 @@ export class MainScene extends Phaser.Scene {
       this.playSfx("gold");
       this.callbacks.onMessage("Золото собрано: +1.");
     }
-    if (type === "stone" || type === "iron") {
+    if (type === "stone" || type === "iron" || type === "wood") {
       const id = item.getData("id") as string | undefined;
       if (id) {
         this.socket?.emit("resource:collect", { id });
         this.resourceSprites.delete(id);
       }
-      const amount = type === "iron" ? 1 : 2;
+      const amount = type === "iron" ? 1 : type === "wood" ? 2 : 2;
       this.updateProfile((profile) => {
         const nextStone = profile.stone + (type === "stone" ? amount : 0);
         return {
           ...profile,
           stone: nextStone,
           iron: profile.iron + (type === "iron" ? amount : 0),
+          wood: profile.wood + (type === "wood" ? amount : 0),
           materials: nextStone,
         };
       });
       this.playSfx("gold");
-      this.callbacks.onMessage(type === "iron" ? "Железо собрано: +1." : "Камень собран: +2.");
+      this.callbacks.onMessage(type === "iron" ? "Железо собрано: +1." : type === "wood" ? "Дерево собрано: +2." : "Камень собран: +2.");
     }
     if (type === "prize") {
       const prize = item.getData("prize") as WorldPrize | undefined;

@@ -45,6 +45,7 @@ type Notice = {
 };
 
 type BuildMode = "none" | "wall" | "ladder" | "door" | "remove";
+type ResourceKind = "stone" | "iron" | "wood";
 
 export function GameCanvas({ levelId }: GameCanvasProps) {
   const router = useRouter();
@@ -500,21 +501,26 @@ function unequipItem(profile: PlayerProfile, slot: GearSlot): PlayerProfile {
   return { ...profile, equipment, inventory: [...profile.inventory, item] };
 }
 
-function buyResource(profile: PlayerProfile, kind: "stone" | "iron"): PlayerProfile {
+function buyResource(profile: PlayerProfile, kind: ResourceKind): PlayerProfile {
   const price = kind === "iron" ? 3 : 1;
   if (profile.gold < price) return profile;
   if (kind === "stone") {
     const stone = profile.stone + 1;
     return { ...profile, gold: profile.gold - price, stone, materials: stone };
   }
+  if (kind === "wood") return { ...profile, gold: profile.gold - price, wood: profile.wood + 1 };
   return { ...profile, gold: profile.gold - price, iron: profile.iron + 1 };
 }
 
-function sellResource(profile: PlayerProfile, kind: "stone" | "iron"): PlayerProfile {
+function sellResource(profile: PlayerProfile, kind: ResourceKind): PlayerProfile {
   if (kind === "stone") {
     if (profile.stone <= 0) return profile;
     const stone = profile.stone - 1;
     return { ...profile, gold: profile.gold + 1, stone, materials: stone };
+  }
+  if (kind === "wood") {
+    if (profile.wood <= 0) return profile;
+    return { ...profile, gold: profile.gold + 1, wood: profile.wood - 1 };
   }
   if (profile.iron <= 0) return profile;
   return { ...profile, gold: profile.gold + 2, iron: profile.iron - 1 };
@@ -526,10 +532,11 @@ function HeroStatus({ profile, customization }: { profile: PlayerProfile; custom
     <section className="grid gap-3 rounded-lg border border-white/10 bg-white/5 p-3 lg:grid-cols-[auto_1fr]">
       <HeroAvatar customization={customization} profile={profile} />
       <div className="grid gap-3">
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-7">
           <ResourceBadge icon={<Coins size={17} />} label="Золото" value={profile.gold} tone="text-yellow-200" />
           <ResourceBadge icon={<Zap size={17} />} label="Камень" value={profile.stone} tone="text-cyan-200" />
           <ResourceBadge icon={<Gem size={17} />} label="Железо" value={profile.iron} tone="text-slate-200" />
+          <ResourceBadge icon={<Hammer size={17} />} label="Дерево" value={profile.wood} tone="text-amber-200" />
           <ResourceBadge icon={<Package size={17} />} label="Предметы" value={profile.inventory.length} tone="text-fuchsia-200" />
           <ResourceBadge icon={<Swords size={17} />} label="Оружие" value={equipped.weapon?.name ?? "нет"} tone="text-orange-200" />
           <ResourceBadge icon={<Shirt size={17} />} label="Шмот" value={equipped.armor?.name ?? equipped.boots?.name ?? "нет"} tone="text-emerald-200" />
@@ -955,8 +962,8 @@ function MarketPanel({
 }: {
   profile: ReturnType<typeof useGameState.getState>["profile"];
   market: MarketListing[];
-  onBuyResource: (kind: "stone" | "iron") => void;
-  onSellResource: (kind: "stone" | "iron") => void;
+  onBuyResource: (kind: ResourceKind) => void;
+  onSellResource: (kind: ResourceKind) => void;
   onMarketBuy: (listing: MarketListing) => void;
 }) {
   const backpackGear = profile.equipment.backpack?.power ?? 0;
@@ -968,9 +975,9 @@ function MarketPanel({
       <div className="rounded-lg border border-white/10 bg-white/5 p-3">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">Материалы</h2>
-          <span className="text-xs text-slate-400">Камень: {profile.stone} · Железо: {profile.iron} · Золото: {profile.gold}</span>
+          <span className="text-xs text-slate-400">Камень: {profile.stone} · Железо: {profile.iron} · Дерево: {profile.wood} · Золото: {profile.gold}</span>
         </div>
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-3">
           <ResourceTradeCard
             icon={<Zap size={18} />}
             title="Камень"
@@ -994,6 +1001,18 @@ function MarketPanel({
             sellDisabled={profile.iron <= 0}
             onBuy={() => onBuyResource("iron")}
             onSell={() => onSellResource("iron")}
+          />
+          <ResourceTradeCard
+            icon={<Hammer size={18} />}
+            title="Дерево"
+            description="Строительный материал. Появляется на карте коричневыми связками."
+            amount={profile.wood}
+            buyLabel="Купить 1 зол."
+            sellLabel="Продать +1 зол."
+            buyDisabled={profile.gold < 1}
+            sellDisabled={profile.wood <= 0}
+            onBuy={() => onBuyResource("wood")}
+            onSell={() => onSellResource("wood")}
           />
         </div>
       </div>
@@ -1109,6 +1128,7 @@ function LevelMinimap({ levelMap, snapshot }: { levelMap: string[]; snapshot: Mi
           <Legend color="bg-yellow-300" label="Золото" />
           <Legend color="bg-slate-400" label="Камень" />
           <Legend color="bg-zinc-200" label="Железо" />
+          <Legend color="bg-amber-700" label="Дерево" />
           <Legend color="bg-emerald-500" label="Двери" />
           <Legend color="bg-fuchsia-400" label="Инкубатор" />
         </div>
@@ -1187,6 +1207,8 @@ function MinimapDot({ entity, width, height }: { entity: MinimapEntity; width: n
               ? `${base} h-2 w-2 bg-slate-400`
               : entity.type === "iron"
                 ? `${base} h-2 w-2 bg-zinc-200`
+                : entity.type === "wood"
+                  ? `${base} h-2 w-2 bg-amber-700`
             : entity.type === "incubator"
               ? `${base} h-2.5 w-2.5 bg-fuchsia-400`
               : entity.type === "exit"
