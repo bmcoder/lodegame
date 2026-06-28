@@ -102,6 +102,7 @@ export class MainScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private solids!: Phaser.Physics.Arcade.StaticGroup;
   private ladders!: Phaser.Physics.Arcade.StaticGroup;
+  private enemyDoors!: Phaser.Physics.Arcade.StaticGroup;
   private bullets!: Phaser.Physics.Arcade.Group;
   private enemyWaves!: Phaser.Physics.Arcade.Group;
   private enemies!: Phaser.Physics.Arcade.Group;
@@ -179,6 +180,7 @@ export class MainScene extends Phaser.Scene {
 
     this.solids = this.physics.add.staticGroup();
     this.ladders = this.physics.add.staticGroup();
+    this.enemyDoors = this.physics.add.staticGroup();
     this.bullets = this.physics.add.group({ allowGravity: false });
     this.enemyWaves = this.physics.add.group({ allowGravity: false });
     this.enemies = this.physics.add.group();
@@ -198,6 +200,7 @@ export class MainScene extends Phaser.Scene {
 
     this.physics.add.collider(this.player, this.solids);
     this.physics.add.collider(this.enemies, this.solids);
+    this.physics.add.collider(this.enemies, this.enemyDoors);
     this.physics.add.collider(this.bullets, this.solids, this.hitSolidWithBullet, undefined, this);
     this.physics.add.collider(this.enemyWaves, this.solids, (wave) => {
       (wave as Phaser.GameObjects.GameObject).destroy();
@@ -543,7 +546,7 @@ export class MainScene extends Phaser.Scene {
         if (tile === "S") this.createSolidTile(key, px, py, "ground", true);
         if (tile === "P") this.createSolidTile(key, px, py, "platform", true);
         if (tile === "L") this.tileSprites.set(key, this.ladders.create(px, py, "ladder").setDepth(2));
-        if (tile === "D") this.tileSprites.set(key, this.add.image(px, py, "door").setDepth(3));
+        if (tile === "D") this.createEnemyDoorTile(key, px, py);
       });
     });
 
@@ -560,6 +563,15 @@ export class MainScene extends Phaser.Scene {
     tile.setData("textureKey", textureKey);
     tile.setData("diggable", diggable);
     this.tileSprites.set(key, tile);
+  }
+
+  private createEnemyDoorTile(key: string, px: number, py: number) {
+    const door = this.enemyDoors.create(px, py, "door").setDepth(3);
+    door.setSize(TILE - 6, TILE);
+    door.refreshBody();
+    door.setData("tileKey", key);
+    door.setData("door", true);
+    this.tileSprites.set(key, door);
   }
 
   private createPlayer() {
@@ -744,6 +756,7 @@ export class MainScene extends Phaser.Scene {
     this.tileSprites.clear();
     this.solids.clear(true, true);
     this.ladders.clear(true, true);
+    this.enemyDoors.clear(true, true);
     this.holes.forEach((hole) => hole.sprite.destroy());
     this.holes.clear();
     this.exitZone?.destroy();
@@ -753,6 +766,7 @@ export class MainScene extends Phaser.Scene {
     this.buildMap();
     this.physics.add.collider(this.player, this.solids);
     this.physics.add.collider(this.enemies, this.solids);
+    this.physics.add.collider(this.enemies, this.enemyDoors);
     this.physics.add.collider(this.bullets, this.solids, this.hitSolidWithBullet, undefined, this);
   }
 
@@ -769,7 +783,7 @@ export class MainScene extends Phaser.Scene {
     const py = y * TILE + TILE / 2;
     if (tile === "P") this.createSolidTile(key, px, py, "platform", true);
     if (tile === "L") this.tileSprites.set(key, this.ladders.create(px, py, "ladder").setDepth(2));
-    if (tile === "D") this.tileSprites.set(key, this.add.image(px, py, "door").setDepth(3));
+    if (tile === "D") this.createEnemyDoorTile(key, px, py);
   }
 
   private replaceWorldGold(gold: WorldGold[]) {
