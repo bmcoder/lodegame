@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Backpack, Bell, BellOff, Coins, DoorOpen, Dumbbell, Gauge, Gem, Hammer, Home, MapIcon, MessageCircle, Package, Pause, Reply, Shield, Shirt, ShoppingBag, Swords, Trash2, UserRound, X, Zap } from "lucide-react";
+import { Backpack, Bell, BellOff, Coins, DoorOpen, Dumbbell, Gauge, Gem, Hammer, Home, MapIcon, MessageCircle, Package, Pause, Reply, Shield, Shirt, ShoppingBag, Swords, UserRound, X, Zap } from "lucide-react";
 import { io, type Socket } from "socket.io-client";
 import { getLevel, getNextLevelId } from "@/app/lib/data/levels";
 import { upgradePrices, useGameState } from "@/app/hooks/useGameState";
@@ -44,7 +44,7 @@ type Notice = {
   text: string;
 };
 
-type BuildMode = "none" | "wall" | "ladder" | "door" | "remove";
+type BuildMode = "none" | "wall" | "ladder" | "door";
 type ResourceKind = "stone" | "iron" | "wood";
 
 export function GameCanvas({ levelId }: GameCanvasProps) {
@@ -69,6 +69,9 @@ export function GameCanvas({ levelId }: GameCanvasProps) {
   const [paused, setPaused] = useState(false);
   const [mapSnapshot, setMapSnapshot] = useState<MinimapSnapshot | null>(null);
   const [buildMode, setBuildMode] = useState<BuildMode>("none");
+  const [shiftBuilding, setShiftBuilding] = useState(false);
+  const [buildPickerOpen, setBuildPickerOpen] = useState(false);
+  const [buildPickerDismissed, setBuildPickerDismissed] = useState(false);
   const [market, setMarket] = useState<MarketListing[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatText, setChatText] = useState("");
@@ -112,6 +115,37 @@ export function GameCanvas({ levelId }: GameCanvasProps) {
   useEffect(() => {
     window.localStorage.setItem("lodegame-chat-sound", chatSoundEnabled ? "on" : "off");
   }, [chatSoundEnabled]);
+
+  useEffect(() => {
+    const isTextInput = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      return target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Shift" || isTextInput(event.target)) return;
+      setShiftBuilding(true);
+      if (!event.repeat && !buildPickerDismissed) setBuildPickerOpen(true);
+    };
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key !== "Shift") return;
+      setShiftBuilding(false);
+      setBuildPickerOpen(false);
+      setBuildPickerDismissed(false);
+    };
+    const handleBlur = () => {
+      setShiftBuilding(false);
+      setBuildPickerOpen(false);
+      setBuildPickerDismissed(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, [buildPickerDismissed]);
 
   useEffect(() => {
     const socket = io(process.env.NEXT_PUBLIC_LODEGAME_SOCKET_URL ?? "http://localhost:3001", {
@@ -252,17 +286,25 @@ export function GameCanvas({ levelId }: GameCanvasProps) {
           <BuildButton active={showHero} icon={<UserRound size={16} />} label="Герой" onClick={() => setShowHero(true)} />
           <BuildButton active={showMarket} icon={<ShoppingBag size={16} />} label="Магазин" onClick={() => setShowMarket(true)} />
           <BuildButton active={showMap} icon={<MapIcon size={16} />} label="КАРТА" onClick={() => setShowMap(true)} />
-          <BuildButton active={buildMode === "wall"} icon={<Hammer size={16} />} label="Стена: 1 кам." onClick={() => selectBuildMode("wall", setBuildMode)} />
-          <BuildButton active={buildMode === "ladder"} icon={<Hammer size={16} />} label="Лестн.: 1ж" onClick={() => selectBuildMode("ladder", setBuildMode)} />
-          <BuildButton active={buildMode === "door"} icon={<DoorOpen size={16} />} label="Дверь: 1к+1ж" onClick={() => selectBuildMode("door", setBuildMode)} />
-          <BuildButton active={buildMode === "remove"} icon={<Trash2 size={16} />} label="Убрать" onClick={() => selectBuildMode("remove", setBuildMode)} />
           <BuildButton active={false} icon={<Zap size={16} />} label="Моя база" onClick={() => window.dispatchEvent(new CustomEvent("lodegame:set-spawn"))} />
-          <BuildButton active={buildMode === "none"} label="Выкл" onClick={() => selectBuildMode("none", setBuildMode)} />
-          <span className="text-xs text-slate-300">Стена 1 камень, лестница 1 железо, дверь 1 камень + 1 железо. “Моя база” сохраняет место старта.</span>
+          <span className="rounded-md border border-cyan-200/25 bg-cyan-300/10 px-3 py-2 text-xs text-slate-200">
+            Стройка: удерживайте Shift. Материал: {buildMaterialLabel(buildMode)}. Пустая клетка строит, занятая удаляется.
+          </span>
         </div>
 
         <div className="relative overflow-hidden rounded-lg border border-white/15 bg-black shadow-2xl">
           <div ref={hostRef} className="aspect-[7/3] w-full touch-none" />
+          {shiftBuilding && buildPickerOpen && (
+            <div className="absolute left-3 top-3 z-30 w-64 rounded-lg border border-cyan-200/30 bg-slate-950/95 p-3 shadow-2xl">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-cyan-200">Что строим?</p>
+              <div className="grid gap-2">
+                <BuildChoiceButton active={buildMode === "wall"} icon={<Hammer size={16} />} label="Камень / стена" detail="1 камень" onClick={() => selectBuildMode("wall", setBuildMode, setBuildPickerOpen, setBuildPickerDismissed)} />
+                <BuildChoiceButton active={buildMode === "ladder"} icon={<Hammer size={16} />} label="Лестница" detail="1 железо" onClick={() => selectBuildMode("ladder", setBuildMode, setBuildPickerOpen, setBuildPickerDismissed)} />
+                <BuildChoiceButton active={buildMode === "door"} icon={<DoorOpen size={16} />} label="Дверь" detail="1 камень + 1 железо" onClick={() => selectBuildMode("door", setBuildMode, setBuildPickerOpen, setBuildPickerDismissed)} />
+              </div>
+              <p className="mt-2 text-xs text-slate-400">Выберите материал, затем не отпуская Shift кликайте по клеткам.</p>
+            </div>
+          )}
           {paused && (
             <div className="absolute inset-0 grid place-items-center bg-slate-950/70 text-3xl font-semibold">
               Пауза
@@ -1094,9 +1136,23 @@ function ResourceTradeCard({
   );
 }
 
-function selectBuildMode(mode: BuildMode, setBuildMode: (mode: BuildMode) => void) {
+function selectBuildMode(
+  mode: BuildMode,
+  setBuildMode: (mode: BuildMode) => void,
+  setBuildPickerOpen?: (open: boolean) => void,
+  setBuildPickerDismissed?: (dismissed: boolean) => void,
+) {
   setBuildMode(mode);
   window.dispatchEvent(new CustomEvent("lodegame:build-mode", { detail: { mode } }));
+  setBuildPickerOpen?.(false);
+  setBuildPickerDismissed?.(true);
+}
+
+function buildMaterialLabel(mode: BuildMode) {
+  if (mode === "wall") return "камень";
+  if (mode === "ladder") return "лестница";
+  if (mode === "door") return "дверь";
+  return "не выбран";
 }
 
 function BuildButton({ active, icon, label, onClick }: { active: boolean; icon?: React.ReactNode; label: string; onClick: () => void }) {
@@ -1109,6 +1165,23 @@ function BuildButton({ active, icon, label, onClick }: { active: boolean; icon?:
     >
       {icon}
       {label}
+    </button>
+  );
+}
+
+function BuildChoiceButton({ active, icon, label, detail, onClick }: { active: boolean; icon: React.ReactNode; label: string; detail: string; onClick: () => void }) {
+  return (
+    <button
+      className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm ${
+        active ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-white/5 text-slate-100 hover:bg-white/10"
+      }`}
+      onClick={onClick}
+    >
+      <span className="inline-flex items-center gap-2">
+        {icon}
+        {label}
+      </span>
+      <span className={`text-xs ${active ? "text-slate-800" : "text-slate-400"}`}>{detail}</span>
     </button>
   );
 }

@@ -50,7 +50,7 @@ type RemotePlayer = {
   label: Phaser.GameObjects.Text;
 };
 
-type BuildMode = "none" | "wall" | "ladder" | "door" | "remove";
+type BuildMode = "none" | "wall" | "ladder" | "door";
 
 type WorldGold = {
   id: string;
@@ -117,6 +117,7 @@ export class MainScene extends Phaser.Scene {
   private remotePlayers = new Map<string, RemotePlayer>();
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<string, Phaser.Input.Keyboard.Key>;
+  private shiftKey!: Phaser.Input.Keyboard.Key;
   private mobile = { left: false, right: false, up: false, down: false };
   private facing = 1;
   private buildMode: BuildMode = "none";
@@ -878,6 +879,7 @@ export class MainScene extends Phaser.Scene {
   private createInput() {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.keys = this.input.keyboard!.addKeys("W,A,S,D,Q,E,R,SPACE,ONE,TWO,THREE,FOUR,FIVE") as Record<string, Phaser.Input.Keyboard.Key>;
+    this.shiftKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
     this.input.keyboard!.addCapture("SPACE");
     this.input.on("pointerdown", () => {
       this.unlockAudio();
@@ -928,16 +930,16 @@ export class MainScene extends Phaser.Scene {
   private setBuildMode(mode: BuildMode) {
     this.buildMode = mode;
     const labels: Record<BuildMode, string> = {
-      none: "Строительство выключено.",
-      wall: "Режим строительства стены: кликните рядом с героем.",
-      ladder: "Режим строительства лестницы: кликните рядом с героем.",
-      door: "Режим строительства двери: кликните рядом с героем.",
-      remove: "Режим демонтажа: кликните по стене, лестнице или двери.",
+      none: "Материал для строительства не выбран.",
+      wall: "Выбран камень: удерживайте Shift и кликайте по карте.",
+      ladder: "Выбрана лестница: удерживайте Shift и кликайте по карте.",
+      door: "Выбрана дверь: удерживайте Shift и кликайте по карте.",
     };
     this.callbacks.onMessage(labels[this.buildMode]);
   }
 
   private tryBuildAtPointer() {
+    if (!this.shiftKey?.isDown) return false;
     if (this.buildMode === "none") return false;
     const pointer = this.input.activePointer;
     const worldPoint = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
@@ -957,6 +959,21 @@ export class MainScene extends Phaser.Scene {
 
     const current = this.level.map[y]?.[x];
     if (!current || current === "#") return true;
+    if (current === "P" || current === "S" || current === "L" || current === "D") {
+      this.applyTile(x, y, ".");
+      if (current === "L") this.updateProfile((profile) => ({ ...profile, iron: profile.iron + 1 }));
+      if (current === "P" || current === "S") this.updateProfile((profile) => ({ ...profile, stone: profile.stone + 1, materials: profile.stone + 1 }));
+      if (current === "D") this.updateProfile((profile) => ({ ...profile, stone: profile.stone + 1, iron: profile.iron + 1, materials: profile.stone + 1 }));
+      this.socket?.emit("world:build", { x, y, tile: "." });
+      this.playSfx("dig");
+      this.callbacks.onMessage("Блок удалён.");
+      return true;
+    }
+    if (current !== ".") {
+      this.callbacks.onMessage("Эту клетку нельзя изменить.");
+      return true;
+    }
+
     const stoneCost = this.buildMode === "wall" || this.buildMode === "door" ? 1 : 0;
     const ironCost = this.buildMode === "ladder" || this.buildMode === "door" ? 1 : 0;
     if (this.profile.stone < stoneCost || this.profile.iron < ironCost) {
@@ -964,34 +981,25 @@ export class MainScene extends Phaser.Scene {
       return true;
     }
 
-    if (this.buildMode === "wall" && current === ".") {
+    if (this.buildMode === "wall") {
       this.updateProfile((profile) => ({ ...profile, stone: profile.stone - stoneCost, materials: profile.stone - stoneCost }));
       this.applyTile(x, y, "P");
       this.socket?.emit("world:build", { x, y, tile: "P" });
       this.playSfx("dig");
       return true;
     }
-    if (this.buildMode === "ladder" && current === ".") {
+    if (this.buildMode === "ladder") {
       this.updateProfile((profile) => ({ ...profile, stone: profile.stone - stoneCost, iron: profile.iron - ironCost, materials: profile.stone - stoneCost }));
       this.applyTile(x, y, "L");
       this.socket?.emit("world:build", { x, y, tile: "L" });
       this.playSfx("open");
       return true;
     }
-    if (this.buildMode === "door" && current === ".") {
+    if (this.buildMode === "door") {
       this.updateProfile((profile) => ({ ...profile, stone: profile.stone - stoneCost, iron: profile.iron - ironCost, materials: profile.stone - stoneCost }));
       this.applyTile(x, y, "D");
       this.socket?.emit("world:build", { x, y, tile: "D" });
       this.playSfx("open");
-      return true;
-    }
-    if (this.buildMode === "remove" && (current === "P" || current === "S" || current === "L" || current === "D")) {
-      this.applyTile(x, y, ".");
-      if (current === "L") this.updateProfile((profile) => ({ ...profile, stone: profile.stone + 1, materials: profile.stone + 1 }));
-      if (current === "P" || current === "S") this.updateProfile((profile) => ({ ...profile, stone: profile.stone + 1, materials: profile.stone + 1 }));
-      if (current === "D") this.updateProfile((profile) => ({ ...profile, stone: profile.stone + 1, iron: profile.iron + 1, materials: profile.stone + 1 }));
-      this.socket?.emit("world:build", { x, y, tile: "." });
-      this.playSfx("dig");
       return true;
     }
 
@@ -1046,9 +1054,8 @@ export class MainScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keys.R)) this.superWeapon(time);
     if (Phaser.Input.Keyboard.JustDown(this.keys.ONE)) this.setBuildMode("wall");
     if (Phaser.Input.Keyboard.JustDown(this.keys.TWO)) this.setBuildMode("ladder");
-    if (Phaser.Input.Keyboard.JustDown(this.keys.THREE)) this.setBuildMode("remove");
-    if (Phaser.Input.Keyboard.JustDown(this.keys.FOUR)) this.setBuildMode("door");
-    if (Phaser.Input.Keyboard.JustDown(this.keys.FIVE)) this.setBuildMode("none");
+    if (Phaser.Input.Keyboard.JustDown(this.keys.THREE)) this.setBuildMode("door");
+    if (Phaser.Input.Keyboard.JustDown(this.keys.FOUR)) this.setBuildMode("none");
   }
 
   private canJumpFromLadder(time: number) {
