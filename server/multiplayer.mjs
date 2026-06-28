@@ -20,6 +20,7 @@ const prizes = new Map();
 const chatHistory = [];
 let nextPrizeId = 1;
 const ITEM_DURABILITY_MS = 60 * 60_000;
+const DOOR_LIFETIME_MS = 60 * 60_000;
 
 function createBaseMap() {
   const width = 224;
@@ -93,14 +94,48 @@ function normalizeWorldMap(targetWorld) {
   return changed;
 }
 
+function normalizeDoorExpirations(targetWorld) {
+  targetWorld.doorExpirations ??= {};
+  let changed = false;
+  const now = Date.now();
+  for (let y = 1; y < targetWorld.map.length - 1; y += 1) {
+    const row = targetWorld.map[y] ?? "";
+    for (let x = 1; x < row.length - 1; x += 1) {
+      const key = `${x}:${y}`;
+      if (row[x] === "D" && !Number.isFinite(targetWorld.doorExpirations[key])) {
+        targetWorld.doorExpirations[key] = now + DOOR_LIFETIME_MS;
+        changed = true;
+      }
+      if (row[x] !== "D" && targetWorld.doorExpirations[key]) {
+        delete targetWorld.doorExpirations[key];
+        changed = true;
+      }
+    }
+  }
+  for (const key of Object.keys(targetWorld.doorExpirations)) {
+    const [xRaw, yRaw] = key.split(":");
+    const x = Number(xRaw);
+    const y = Number(yRaw);
+    if (targetWorld.map[y]?.[x] !== "D") {
+      delete targetWorld.doorExpirations[key];
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 function loadWorld() {
   if (existsSync(worldPath)) {
     try {
       const parsed = JSON.parse(readFileSync(worldPath, "utf8"));
       if (Array.isArray(parsed.map) && Array.isArray(parsed.gold) && parsed.map.length === 48 && parsed.map[0]?.length === 224) {
-        if (normalizeWorldMap(parsed)) writeFileSync(worldPath, JSON.stringify(parsed, null, 2));
+        const mapChanged = normalizeWorldMap(parsed);
+        const doorsChanged = normalizeDoorExpirations(parsed);
+        const changed = mapChanged || doorsChanged;
+        if (changed) writeFileSync(worldPath, JSON.stringify(parsed, null, 2));
         parsed.resources ??= [];
         parsed.market ??= [];
+        parsed.doorExpirations ??= {};
         parsed.nextMarketId ??= 1;
         parsed.nextResourceId ??= 1;
         return parsed;
@@ -109,7 +144,7 @@ function loadWorld() {
       // Fall back to a fresh world below.
     }
   }
-  return { map: createBaseMap(), gold: [], resources: [], market: [], nextGoldId: 1, nextResourceId: 1, nextMarketId: 1 };
+  return { map: createBaseMap(), gold: [], resources: [], market: [], doorExpirations: {}, nextGoldId: 1, nextResourceId: 1, nextMarketId: 1 };
 }
 
 function saveWorld() {
@@ -128,6 +163,10 @@ function setTile(x, y, tile) {
   const row = world.map[y];
   if (!row) return false;
   world.map[y] = `${row.slice(0, x)}${tile}${row.slice(x + 1)}`;
+  world.doorExpirations ??= {};
+  const key = `${x}:${y}`;
+  if (tile === "D") world.doorExpirations[key] = Date.now() + DOOR_LIFETIME_MS;
+  else delete world.doorExpirations[key];
   return true;
 }
 
@@ -177,6 +216,30 @@ function spawnResource() {
 }
 
 setInterval(spawnResource, 5200);
+
+function expireDoors() {
+  world.doorExpirations ??= {};
+  const now = Date.now();
+  let changed = false;
+  for (const [key, expiresAt] of Object.entries(world.doorExpirations)) {
+    if (Number(expiresAt) > now) continue;
+    const [xRaw, yRaw] = key.split(":");
+    const x = Number(xRaw);
+    const y = Number(yRaw);
+    delete world.doorExpirations[key];
+    if (tileAt(x, y) !== "D") {
+      changed = true;
+      continue;
+    }
+    setTile(x, y, ".");
+    io.emit("world:tile", { x, y, tile: "." });
+    changed = true;
+  }
+  if (changed) saveWorld();
+}
+
+expireDoors();
+setInterval(expireDoors, 10_000);
 
 const prizeTemplates = [
   { name: "Бластер", slot: "weapon", effect: "shotDamage", weight: 2, value: 16, color: "#f97316" },
